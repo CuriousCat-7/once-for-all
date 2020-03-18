@@ -1,3 +1,5 @@
+/exp/
+/.torch/
 .idea/*
 tmp/
 cache/
