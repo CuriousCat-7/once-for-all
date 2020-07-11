@@ -44,12 +44,18 @@ class OFATask(Task):
         Hs = []
         Ws = []
         times = []
+        flopses = []
+        params = []
         for cfg in tqdm(numeric_cfgs):
             self.ofa_network.set_active_subnet(cfg)
             subnet = self.ofa_network.get_active_subnet(cfg)
             #import pdb; pdb.set_trace()
             assert cfg == subnet.numeric_cfg
             input_size = [3, cfg["wid"][0], cfg["wid"][1]]
+            flops, param = get_model_complexity_info(
+                    subnet, input_size, False, False)
+            flopses.append(flops)
+            params.append(param)
             for i in range(20):
                 ks[i].append(cfg["ks"][i])
                 es[i].append(cfg["e"][i])
@@ -57,18 +63,25 @@ class OFATask(Task):
                 ds[i].append(cfg["d"][i])
             Hs.append(cfg["wid"][0])
             Ws.append(cfg["wid"][1])
-            # TODO try catch
-            client = LatencyMeasureClient(
-                opset_version=opset_version,
-                run_times=run_times,
-                ptype=ptype)
-            time = client.model2latency(subnet, input_size)
+            try:
+                client = LatencyMeasureClient(
+                    opset_version=opset_version,
+                    run_times=run_times,
+                    ptype=ptype)
+                time = client.model2latency(subnet, input_size)
+            except KeyboardInterrupt:
+                raise KeyboardInterrupt
+            except:
+                logger.warning("task {} failed", cfg)
+                times.append(math.nan)
             times.append(time)
 
         rdict = {}
         rdict["H"] = Hs
         rdict["W"] = Ws
         rdict["time"] = times
+        rdict["flops"] = flopses
+        rdict["param"] = params
         for k_name, k in zip(k_names, ks):
             rdict[k_name] = k
         for e_name, e in zip(e_names, es):
@@ -90,6 +103,7 @@ class OFATask(Task):
             save_path = f'{self.ROOT}/{self.name}.pkl'
             df.to_pickle(save_path)
             logger.info("have {} / {}, save to {}", len(df), self.num_sample, save_path)
+        print(df)
         return df
 
     def get_batch_cfg(self, num=1):
