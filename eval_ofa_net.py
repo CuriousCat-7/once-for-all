@@ -65,6 +65,7 @@ run_config = ImagenetRunConfig(test_batch_size=args.batch_size, n_worker=args.wo
 ofa_network.sample_active_subnet()
 subnet = ofa_network.get_active_subnet(preserve_weight=True)
 torch.onnx.export(subnet, torch.rand(1,3,224,224), "subnet.onnx" )
+import pdb; pdb.set_trace()
 assert False
 
 """ Test sampled subnet

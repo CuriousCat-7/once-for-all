@@ -247,7 +247,7 @@ class OFAMobileNetV3(MobileNetV3):
         self.__dict__['_ks_include_list'] = None
         self.__dict__['_widthMult_include_list'] = None
 
-    def sample_active_subnet(self):
+    def sample_active_subnet(self, with_set=True):
         ks_candidates = self.ks_list if self.__dict__.get('_ks_include_list', None) is None \
             else self.__dict__['_ks_include_list']
         expand_candidates = self.expand_ratio_list if self.__dict__.get('_expand_include_list', None) is None \
@@ -282,14 +282,16 @@ class OFAMobileNetV3(MobileNetV3):
             d = random.choice(d_set)
             depth_setting.append(d)
 
-        self.set_active_subnet(width_mult_setting, ks_setting, expand_setting, depth_setting)
+        if with_set:
+            self.set_active_subnet(width_mult_setting, ks_setting, expand_setting, depth_setting)
 
-        return {
+        self.numeric_cfg = {
             'wid': width_mult_setting,
             'ks': ks_setting,
             'e': expand_setting,
             'd': depth_setting,
         }
+        return self.numeric_cfg
 
     def get_active_subnet(self, preserve_weight=True):
         first_conv = copy.deepcopy(self.first_conv)
@@ -315,6 +317,7 @@ class OFAMobileNetV3(MobileNetV3):
 
         _subnet = MobileNetV3(first_conv, blocks, final_expand_layer, feature_mix_layer, classifier)
         _subnet.set_bn_param(**self.get_bn_param())
+        _subnet.numeric_cfg = self.numeric_cfg
         return _subnet
 
     def get_active_net_config(self):
