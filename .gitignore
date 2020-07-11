@@ -1,3 +1,5 @@
+.torch
+.tmp
 .vscode/
 .idea/
 tmp/
