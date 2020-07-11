@@ -58,14 +58,16 @@ ImagenetDataProvider.DEFAULT_PATH = args.path
 ofa_network = ofa_net(args.net, pretrained=True)
 run_config = ImagenetRunConfig(test_batch_size=args.batch_size, n_worker=args.workers)
 
-""" Randomly sample a sub-network, 
-    you can also manually set the sub-network using: 
-        ofa_network.set_active_subnet(ks=7, e=6, d=4) 
+""" Randomly sample a sub-network,
+    you can also manually set the sub-network using:
+        ofa_network.set_active_subnet(ks=7, e=6, d=4)
 """
 ofa_network.sample_active_subnet()
 subnet = ofa_network.get_active_subnet(preserve_weight=True)
+torch.onnx.export(subnet, torch.rand(1,3,224,224), "subnet.onnx" )
+assert False
 
-""" Test sampled subnet 
+""" Test sampled subnet
 """
 run_manager = RunManager('.tmp/eval_subnet', subnet, run_config, init=False)
 # assign image size: 128, 132, ..., 224

@@ -146,7 +146,8 @@ class OFAMobileNetV3(MobileNetV3):
                 x = self.blocks[idx](x)
 
         x = self.final_expand_layer(x)
-        x = x.mean(3, keepdim=True).mean(2, keepdim=True)  # global average pooling
+        #x = x.mean(3, keepdim=True).mean(2, keepdim=True)  # global average pooling
+        x = torch.nn.functional.adaptive_avg_pool2d(x, 1)
         x = self.feature_mix_layer(x)
         x = torch.squeeze(x)
         x = self.classifier(x)

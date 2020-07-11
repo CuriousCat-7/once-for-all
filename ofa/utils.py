@@ -267,7 +267,9 @@ class Hswish(nn.Module):
         self.inplace = inplace
 
     def forward(self, x):
-        return x * F.relu6(x + 3., inplace=self.inplace) / 6.
+        #return x * F.relu6(x + 3., inplace=self.inplace) / 6.
+        #return x * F.relu6(x + 3., inplace=self.inplace) * (1.0/6)
+        return x * F.sigmoid(x)
 
 
 class Hsigmoid(nn.Module):
@@ -277,7 +279,9 @@ class Hsigmoid(nn.Module):
         self.inplace = inplace
 
     def forward(self, x):
-        return F.relu6(x + 3., inplace=self.inplace) / 6.
+        #return F.relu6(x + 3., inplace=self.inplace) / 6.
+        #return F.relu6(x + 3., inplace=self.inplace)*(1.0/6)
+        return F.sigmoid(x)
 
 
 class SEModule(nn.Module):
@@ -299,6 +303,8 @@ class SEModule(nn.Module):
         ]))
 
     def forward(self, x):
-        y = x.mean(3, keepdim=True).mean(2, keepdim=True)
+        #y = x.mean(3, keepdim=True).mean(2, keepdim=True)
+        y = torch.nn.functional.adaptive_avg_pool2d(x, 1)
         y = self.fc(y)
-        return x * y
+        #return x * y
+        return torch.mul(x, y.expand_as(x))
