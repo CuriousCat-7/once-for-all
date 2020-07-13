@@ -47,9 +47,8 @@ class OFATask(Task):
         flopses = []
         params = []
         for cfg in tqdm(numeric_cfgs):
-            self.ofa_network.set_active_subnet(cfg)
-            subnet = self.ofa_network.get_active_subnet(cfg)
-            #import pdb; pdb.set_trace()
+            self.ofa_network.set_active_subnet_with_cfg(cfg)
+            subnet = self.ofa_network.get_active_subnet()
             assert cfg == subnet.numeric_cfg
             input_size = [3, cfg["wid"][0], cfg["wid"][1]]
             flops, param = get_model_complexity_info(
@@ -73,7 +72,7 @@ class OFATask(Task):
                 raise KeyboardInterrupt
             except:
                 logger.warning("task {} failed", cfg)
-                times.append(math.nan)
+                time = math.nan
             times.append(time)
 
         rdict = {}

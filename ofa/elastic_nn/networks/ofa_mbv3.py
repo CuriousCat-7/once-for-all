@@ -285,13 +285,17 @@ class OFAMobileNetV3(MobileNetV3):
         if with_set:
             self.set_active_subnet(width_mult_setting, ks_setting, expand_setting, depth_setting)
 
-        self.numeric_cfg = {
+        numeric_cfg = {
             'wid': width_mult_setting,
             'ks': ks_setting,
             'e': expand_setting,
             'd': depth_setting,
         }
-        return self.numeric_cfg
+        return numeric_cfg
+
+    def set_active_subnet_with_cfg(self, cfg):
+        self.numeric_cfg = cfg
+        self.set_active_subnet(cfg["wid"], cfg["ks"], cfg["e"], cfg["d"])
 
     def get_active_subnet(self, preserve_weight=True):
         first_conv = copy.deepcopy(self.first_conv)
