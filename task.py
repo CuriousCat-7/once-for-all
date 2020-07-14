@@ -2,6 +2,7 @@ from speed_task import *
 from ofa.model_zoo import ofa_net
 import random
 from typing import List
+import yaml
 
 
 class OFATask(Task):
@@ -11,6 +12,7 @@ class OFATask(Task):
             seed=123,
             num_sample=3,
             run_times=10,
+            ptype="DSP",
             log_level="INFO"):
         """
         对ofa进行测速，
@@ -19,21 +21,28 @@ class OFATask(Task):
         一来SNPE对其的图重构会出难以名状的bug，
         二来在SNPE上，Hard 竟没有原版的速度快
         """
-        self.name = f"{net}_seed{seed}_num_sample{num_sample}_run_times{run_times}"
+        self.name = f"{net}_seed{seed}_num_sample{num_sample}_run_times{run_times}_ptype{ptype}"
         self.ofa_network = ofa_net(net, False)  # 只测速不测精度
         random.seed(seed)
         self.img_sizes = list(range(128, 225, 4))
         self.num_sample = num_sample
         self.run_times = run_times
+        self.ptype = ptype
         logger.remove()
         logger.add(sys.stderr, level=log_level)
 
+
+    def cfg2subnet(self, cfg)->nn.Module:
+        self.ofa_network.set_active_subnet_with_cfg(cfg)
+        subnet = self.ofa_network.get_active_subnet()
+        assert cfg == subnet.numeric_cfg
+        return subnet
 
     def measure_tasks(self, numeric_cfgs:List[dict]) -> pd.DataFrame:
         # hyper params
         run_times = self.run_times
         opset_version = 10
-        ptype = "DSP"
+        ptype = self.ptype
 
         ks = [[] for i in range(20)]
         k_names = [f"k_{i}" for i in range(20)]
@@ -47,9 +56,7 @@ class OFATask(Task):
         flopses = []
         params = []
         for cfg in tqdm(numeric_cfgs):
-            self.ofa_network.set_active_subnet_with_cfg(cfg)
-            subnet = self.ofa_network.get_active_subnet()
-            assert cfg == subnet.numeric_cfg
+            subnet = self.cfg2subnet(cfg)
             input_size = [3, cfg["wid"][0], cfg["wid"][1]]
             flops, param = get_model_complexity_info(
                     subnet, input_size, False, False)
@@ -70,8 +77,8 @@ class OFATask(Task):
                 time = client.model2latency(subnet, input_size)
             except KeyboardInterrupt:
                 raise KeyboardInterrupt
-            except:
-                logger.warning("task {} failed", cfg)
+            except Exception as e:
+                logger.warning("task {} failed as {}", cfg, e)
                 time = math.nan
             times.append(time)
 
@@ -112,6 +119,18 @@ class OFATask(Task):
             cfg["wid"] = [random.choice(self.img_sizes), random.choice(self.img_sizes)]  # H, W
             numeric_cfgs.append(cfg)
         return numeric_cfgs
+
+    def test(self):
+        cfg = self.get_batch_cfg(1)[0]
+        subnet = self.cfg2subnet(cfg)
+        client = LatencyMeasureClient(
+                time_by_layer=True,
+                remain_cache=True,
+                )
+        time, time_by_layer, res = client.model2latency(subnet, [3,224,224])
+        print(time_by_layer)
+        print(cfg)
+        yaml.dump(res, open("save/test.yaml", "w"))
 
 
 if __name__ == "__main__":
